@@ -18,8 +18,8 @@
 #define STATUS_LED                   2     // Built-in blue LED on pin 2
 #define LED_INVERTED                 1     // 1 = High: Off, Low: On, 0 = opposite
   
-#define SERVOOPEN  85 // servo value when door is open
-#define SERVOCLOSE 50 //
+#define SERVOOPEN  90 // servo value when door is open
+#define SERVOCLOSE 60 //
 
 #define HOSTNAME                 "IoTrap-"                // Default host when note configured
 #define PORTALPASS               "password"                 // Set AP wifi password for portal mode
@@ -33,6 +33,7 @@
 #define TELEGRAM                                            // enable Telegram bot
 #define TGRM_LTIME 2000  // scan message each 2 sec.
 #define TGRM_TKN_LTH 46  // Telegram token length
+#define TGRM_CHAN        // Telegram channel to post
 
 #include "streamprint.h"                                    // Stream to Serial: Serial << "blahblah" << endl;
 #include <FS.h>
@@ -184,7 +185,7 @@ void loop() {
 void closeTrap() {
   Serial << "Closing trap" << endl;
   servo.attach(SERVOPIN);
-  yield();
+  delay(10);
   servo.write(SERVOCLOSE);
   delay(100);
   servo.detach();
@@ -200,7 +201,7 @@ void initTrap() {
   Serial << "Opening Trap" << endl;
   traped = false;
   servo.attach(SERVOPIN);
-  yield();
+  delay(10);
   servo.write(SERVOOPEN);
   delay(100);
   servo.detach();

@@ -21,8 +21,9 @@ void saveConfig() {
 //        json["conf_mqtt_port"]      = conf_mqtt_port;
 //        json["conf_mqtt_topic"]     = conf_mqtt_topic;
         json["conf_hostname"]       = conf_hostname;
+        #ifdef TELEGRAM
         json["conf_bottoken"]       = conf_bottoken;
-        
+        #endif
         SPIFFS.begin();
         File configFile = SPIFFS.open("/config.json", "w");
         
@@ -289,8 +290,8 @@ void onButtonHeld(Button& btn, uint16_t duration, uint16_t repeatCount){
       
       // Delete config & Reboot
       // TOdo deleteConfig();
-      //ESP.reset();
-      //delay(5000);
+      ESP.reset();
+      delay(5000);
     
   }
 }
@@ -298,7 +299,6 @@ void onButtonHeld(Button& btn, uint16_t duration, uint16_t repeatCount){
 // duration reports back the total time that the button was held down
 void onButtonReleased(Button& btn, uint16_t duration){
   if (duration <= BUT_DOOR) {
-      Serial.println(F("SYS: INVERT DOOR"));
       if (traped) initTrap();
        else closeTrap();
   }
