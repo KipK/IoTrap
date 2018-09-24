@@ -12,8 +12,7 @@
 // Button press timings
 #define BUT_RESET     10000
 #define BUT_CONFIG    5000
-#define BUT_REBOOT    2000
-#define BUT_DOOR      500
+#define BUT_DOOR      2000
 
 #define STATUS_LED                   2     // Built-in blue LED on pin 2
 #define LED_INVERTED                 1     // 1 = High: Off, Low: On, 0 = opposite
@@ -33,7 +32,7 @@
 #define TELEGRAM                                            // enable Telegram bot
 #define TGRM_LTIME 2000  // scan message each 2 sec.
 #define TGRM_TKN_LTH 46  // Telegram token length
-#define TGRM_CHAN        // Telegram channel to post
+#define TGRM_PASS "seychelles"
 
 //extern "C" {
 //#include "user_interface.h"
@@ -140,11 +139,10 @@ void setup() {
   bot = new UniversalTelegramBot( conf_bottoken, client);
   #endif
   
-  attachInterrupt(digitalPinToInterrupt(BUTTONPIN), handleButtonInterrupt, CHANGE); 
+
   initTrap(); // Open the door at boot
      
-    
-
+   
 }
 
 void loop() {

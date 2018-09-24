@@ -1,5 +1,16 @@
 #ifdef TELEGRAM
 
+String helpmsg = "Commands.\n"\
+                 "-  /start              : subscribe to notifications\n"
+                 "-  /stop               : unsubscribe to notifications\n"
+                 "-  /status             : show trap status\n"
+                 "-  /device             : show device infos\n"
+                 "Admin Commands:\n"
+                 "-  /users <PASS>       : show all users\n"
+                 "-  /delusers <PASS/    : remove all users\n"
+                 "-  /open <PASS>    : open trap door\n"
+                 "-  /close <PASS>   : close trap door\n";
+            
 JsonObject& getSubscribedUsers() {
   
         
@@ -98,54 +109,73 @@ void handleNewMessages(int numNewMessages) {
     String chat_id = String(bot->messages[i].chat_id);
     String chat_title = String(bot->messages[i].chat_title);
     String type = String(bot->messages[i].type);
-    String from_name = "";
-    if (type == "channel_post") from_name = String(bot->messages[i].chat_title);
-    else from_name = String(bot->messages[i].from_name);
+    String from_name = String(bot->messages[i].from_name);
     String text = bot->messages[i].text;
     String sendmsg = "";
 
     Serial << "MSG: text: " << text << endl;
     Serial << " Chat id: " << chat_id << " | Chat title: " << chat_title << " Type: " << type << endl;
+    // temporary hak
+    button.update();
+    yield;
     
-    if (text == "/start") {
-      if (addSubscribedUser(chat_id, from_name)) {
-        sendmsg = "Welcome to the connected mouse trap " + from_name + ".\n";
-        sendmsg = "You are now subscribed\n";
-        sendmsg += "Here are the commands.\n\n";
-        sendmsg += "/status      : show trap status\n";
-        sendmsg += "/network     : show network infos\n";
-        sendmsg += "/showusers   : show all subscribed users\n";
-        sendmsg += "/removeusers : remove all subscribed users\n";
-        sendmsg += "/stop        : unsubscribe from bot\n";
-      } else {
-        sendmsg = "Something wrong, can't subscribe, please try again (later?)\n";
+    if(type == "message") { // commands for private message only
+      if (text == "/start") {
+        
+          if (addSubscribedUser(chat_id, from_name)) {
+            sendmsg =  "Welcome " + from_name + " ,\n";
+            sendmsg += "I'm IoTrap bot, an overkill but cool non lethal mouse trap.\n";
+            sendmsg += "You are now SUBSCRIBED to notifications\n";
+            sendmsg += helpmsg;
+
+          } else {
+            sendmsg = "Something wrong, can't subscribe, please try again (later?)\n";
+          }
       }
-    }
-    else if (text == "/status") {
-      if (traped) sendmsg = "Dude, we have a mouse here! Trap is locked.";
-      else        sendmsg = "Trap is ready and waiting for a target";
-     
-    }
-    else if (text == "/network") {
-        sendmsg = WiFi.localIP().toString();
-    }
-    else if (text == "/stop") {
-      if (removeSubscribedUser(chat_id)) {
-        sendmsg = "Thank you " + from_name + ", you are now unsubscribed";
-      } else {
-        sendmsg = "Something wrong, can't unsubscribe, please try again (later?)";
+      else if (text == "/stop") {
+        if (removeSubscribedUser(chat_id)) {
+          sendmsg = "Thank you " + from_name + ", you are now unsubscribed";
+        } else {
+          sendmsg = "Something went wrong, can't unsubscribe, please try again (later?)";
+        }
       }
-    }
-    else if (text == "/users") {
+      else if (text == "/help") {
+        sendmsg =  "==  IoTRAP - WiFi Mouse Trap  ==\n\n"; 
+        sendmsg += helpmsg;
+      }
+      else if (text == "/status") {
+        if (traped) sendmsg = "Dude, we have a mouse here! Trap is locked.";
+        else        sendmsg = "Trap is ready and waiting for a target";
+       
+      }
+      else if (text == "/device") {
+          sendmsg = WiFi.localIP().toString();
+      }
+      else if (text == ("/users " + String(TGRM_PASS))) {
         JsonObject& users = getSubscribedUsers();
         users.printTo(sendmsg);
 
+      }
+      else if (text == ("/delusers " + String(TGRM_PASS))) {
+        if (SPIFFS.remove("/"+subscribed_users_filename)) {
+          sendmsg = "All users removed";
+        } else {
+          sendmsg = "Something went wrong, please try again (later?)";
+        }
+      }
+      else if(text == ("/open " + String(TGRM_PASS))) {
+        initTrap();
+      }
+      else if(text == ("/close " + String(TGRM_PASS))) {
+        closeTrap();
+      }
+
+      if (sendmsg) {
+        bot->sendMessage(chat_id, sendmsg, "Markdown");
+        sendmsg = "";
+      }
     }
-
-      
-    bot->sendMessage(chat_id, sendmsg, "Markdown");
   }
-
 }
 
 
@@ -156,7 +186,10 @@ void sendMessageToUsers(String message) {
 
   for (JsonObject::iterator it=users.begin(); it!=users.end(); ++it) {
     users_processed++;
-
+        // temporary hak
+        button.update();
+        yield;
+        
     if (users_processed < messages_limit_per_second)  {
       const char* chat_id = it->key;
       Serial << "Send msg to " << chat_id << " msg: " << message << endl;

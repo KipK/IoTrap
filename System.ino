@@ -250,7 +250,7 @@ void startWifi() {
 void configurePushButton(Bounce& bouncedButton){
 
         // Set the debounce interval to 15ms - default is 10ms
-        bouncedButton.interval(15);
+        bouncedButton.interval(10);
 }
 
 void onButtonPressed(Button& btn){
@@ -263,8 +263,7 @@ void onButtonHeld(Button& btn, uint16_t duration, uint16_t repeatCount){
 
   if (duration >= BUT_RESET) {
       Serial.println(F("SYS: RESET CONF & REBOOT"));
-      yield();
-      
+      yield();      
       // Delete config & Reboot
       // TOdo deleteConfig();
       ESP.reset();
@@ -279,12 +278,7 @@ void onButtonReleased(Button& btn, uint16_t duration){
       if (traped) initTrap();
        else closeTrap();
   }
-  if (duration >= BUT_REBOOT && duration < BUT_CONFIG) {
-      Serial.println(F("SYS: REBOOT"));
-      yield();
-      ESP.reset();
-      delay(5000);
-  }
+  
   else if (duration >= BUT_CONFIG && duration < BUT_RESET) {
       Serial.println(F("SYS: STARTING PORTAL"));
       yield();
@@ -293,9 +287,7 @@ void onButtonReleased(Button& btn, uint16_t duration){
   }
 }
 
-void handleButtonInterrupt() {
-  Serial.println("button interrupt");
-}
+  
 
 #endif
 
