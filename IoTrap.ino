@@ -1,6 +1,6 @@
 // IoTrap, an esp8266 based mouse trap.
 // by Guillaume Sartre 
-
+#define VERSION "0.1.1"
 
 
 
@@ -57,7 +57,8 @@
 
 #ifdef TELEGRAM
 #include <WiFiClientSecure.h>
-#include <UniversalTelegramBot.h>
+//#include <UniversalTelegramBot.h>
+#include <TelegramBotClient.h>
 #endif
 
 
@@ -69,7 +70,7 @@ Ticker flasher;
 
 #ifdef TELEGRAM
 WiFiClientSecure client;
-UniversalTelegramBot *bot;
+TelegramBotClient *bot;
 
 #endif
 
@@ -136,11 +137,16 @@ void setup() {
   #ifdef TELEGRAM
 
   // Instantiate the client with secure token and client
-  bot = new UniversalTelegramBot( conf_bottoken, client);
+  bot = new TelegramBotClient( conf_bottoken, client);
   #endif
   
-
+   bot->begin(      
+      onReceive,
+      onError);    
   initTrap(); // Open the door at boot
+  String sendmsg= "";
+  sendmsg =  "☠🐭☠ -- " + String(conf_hostname) + " " + VERSION + " -- ☠🐭☠\n Ready & Armed.\n Waiting for 🐭🐭🐭🐭..." ;
+  sendMessageToUsers(sendmsg);
      
    
 }
@@ -157,8 +163,9 @@ void loop() {
     startPortal();
   }
 
-  if ((millis() - main_ltime) >= 20) { // loop each 20ms ( 50 hz ) 
+  if ((millis() - main_ltime) >= 500) { 
     // To Do: check IR sensor status
+    bot->loop();
     main_ltime = millis();
   }
   else if ((millis() - main_ltime) < 0) main_ltime = millis(); // in case it overflown
@@ -166,7 +173,7 @@ void loop() {
 
   if(WiFi.status() != WL_CONNECTED) {
     // NO CONNECTION   
-      if ((millis() - wifi_ltime) >= 5000) {
+      if ((millis() - wifi_ltime) >= 10000) {
         Serial <<  F("No Wifi, Reconnecting ...") << endl;
         yield();
         wifi_ltime = millis();
@@ -177,17 +184,7 @@ void loop() {
     // CONNECTED DO WIFI STUFF
     //TELEGRAM
     #ifdef TELEGRAM
-      if (tgrm_ok) {
-        if (millis() > bot_lasttime + TGRM_LTIME)  {
-          int numNewMessages = bot->getUpdates(bot->last_message_received + 1);
-          while(numNewMessages) {
-            Serial.println("got response");
-            handleNewMessages(numNewMessages);
-            numNewMessages = bot->getUpdates(bot->last_message_received + 1);
-          }
-          bot_lasttime = millis();
-        }
-      }
+    bot->loop();
     #endif
     
   }
@@ -203,10 +200,6 @@ void closeTrap() {
   delay(100);
   servo.detach();
   traped = true;
-
-  #ifdef TELEGRAM
-  sendMessageToUsers("Mouse traped!");
-  #endif
 }
 
 
@@ -218,7 +211,4 @@ void initTrap() {
   servo.write(SERVOOPEN);
   delay(100);
   servo.detach();
-  #ifdef TELEGRAM
-  sendMessageToUsers("Opening trap, waiting for target");
-  #endif
 }

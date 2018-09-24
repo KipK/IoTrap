@@ -1,6 +1,6 @@
 #ifdef TELEGRAM
 
-String helpmsg = "Commands.\n"\
+String helpmsg = "Commands:\n"\
                  "-  /start              : subscribe to notifications\n"
                  "-  /stop               : unsubscribe to notifications\n"
                  "-  /status             : show trap status\n"
@@ -61,7 +61,7 @@ String listSubscribedUsers() {
   Serial << endl;    
 }
 
-bool addSubscribedUser(String chat_id, String from_name) {
+bool addSubscribedUser(long chat_id, String from_name) {
   JsonObject& users = getSubscribedUsers();
   File subscribedUsersFile = SPIFFS.open("/"+subscribed_users_filename, "w+");
   delay(1);
@@ -70,7 +70,7 @@ bool addSubscribedUser(String chat_id, String from_name) {
     //return false;
   }
 
-  users.set(chat_id, from_name);
+  users.set(String(chat_id), from_name);
   
   users.printTo(subscribedUsersFile);
   
@@ -81,7 +81,7 @@ bool addSubscribedUser(String chat_id, String from_name) {
     
 }
         
-bool removeSubscribedUser(String chat_id) {
+bool removeSubscribedUser(long chat_id) {
     JsonObject& users = getSubscribedUsers();
           
       File subscribedUsersFile = SPIFFS.open("/"+subscribed_users_filename, "w");
@@ -92,7 +92,7 @@ bool removeSubscribedUser(String chat_id) {
         return false;
       }
     
-      users.remove(chat_id);
+      users.remove(String(chat_id));
       users.printTo(subscribedUsersFile);
     
       subscribedUsersFile.close();
@@ -103,23 +103,42 @@ bool removeSubscribedUser(String chat_id) {
         
 }
 
-void handleNewMessages(int numNewMessages) {
-  Serial << "BOT: Received " << String(numNewMessages) << " new message(s)" <<  endl;
-  for(int i=0; i<numNewMessages; i++) {
-    String chat_id = String(bot->messages[i].chat_id);
-    String chat_title = String(bot->messages[i].chat_title);
-    String type = String(bot->messages[i].type);
-    String from_name = String(bot->messages[i].from_name);
-    String text = bot->messages[i].text;
-    String sendmsg = "";
+
+void sendMessageToUsers(String message) {
+  int users_processed = 0;
+
+  JsonObject& users = getSubscribedUsers();
+
+  for (JsonObject::iterator it=users.begin(); it!=users.end(); ++it) {
+    users_processed++;
+        // temporary hak
+        button.update();
+        yield;
+        
+    if (users_processed < messages_limit_per_second)  {
+      Serial << "Send msg to " << it->key << " msg: " << message << endl;
+      bot ->postMessage(long(atoi(it->key)), message);
+      yield();
+    } else {
+      delay(bulk_messages_mtbs);
+      users_processed = 0;
+    }
+  }
+}
+
+
+void onReceive (TelegramProcessError tbcErr, JwcProcessError jwcErr, Message* msg)
+{      
+
+    long chat_id = long(msg->ChatId);
+    String from_name = String(msg->FromFirstName);
+    String text = String(msg->Text);
+    String type = String(msg->ChatType);
+    String sendmsg = ""; 
 
     Serial << "MSG: text: " << text << endl;
-    Serial << " Chat id: " << chat_id << " | Chat title: " << chat_title << " Type: " << type << endl;
-    // temporary hak
-    button.update();
-    yield;
-    
-    if(type == "message") { // commands for private message only
+    Serial << " Chat id: " << chat_id << " | Type: " << type << endl;
+    //if(type == "message") { // commands for private message only
       if (text == "/start") {
         
           if (addSubscribedUser(chat_id, from_name)) {
@@ -144,8 +163,8 @@ void handleNewMessages(int numNewMessages) {
         sendmsg += helpmsg;
       }
       else if (text == "/status") {
-        if (traped) sendmsg = "Dude, we have a mouse here! Trap is locked.";
-        else        sendmsg = "Trap is ready and waiting for a target";
+        if (traped) sendmsg = "Dude, we have a 🐭 here! Trap is locked.";
+        else        sendmsg = "Trap is ready and waiting for 🐭";
        
       }
       else if (text == "/device") {
@@ -165,44 +184,28 @@ void handleNewMessages(int numNewMessages) {
       }
       else if(text == ("/open " + String(TGRM_PASS))) {
         initTrap();
+        sendmsg = "Opening trap, waiting for target";
       }
       else if(text == ("/close " + String(TGRM_PASS))) {
         closeTrap();
+        sendmsg = "Closing trap";
       }
 
       if (sendmsg) {
-        bot->sendMessage(chat_id, sendmsg, "Markdown");
+        bot->postMessage(msg->ChatId, sendmsg);
         sendmsg = "";
       }
-    }
-  }
+   // }
+    
+    
 }
 
-
-void sendMessageToUsers(String message) {
-  int users_processed = 0;
-
-  JsonObject& users = getSubscribedUsers();
-
-  for (JsonObject::iterator it=users.begin(); it!=users.end(); ++it) {
-    users_processed++;
-        // temporary hak
-        button.update();
-        yield;
-        
-    if (users_processed < messages_limit_per_second)  {
-      const char* chat_id = it->key;
-      Serial << "Send msg to " << chat_id << " msg: " << message << endl;
-      bot ->sendMessage(chat_id, message, "");
-      yield();
-    } else {
-      delay(bulk_messages_mtbs);
-      users_processed = 0;
-    }
-  }
+// Function called if an error occures
+void onError (TelegramProcessError tbcErr, JwcProcessError jwcErr)
+{
+  Serial.println("onError");
+  Serial.print("tbcErr"); Serial.print((int)tbcErr); Serial.print(":"); Serial.println(toString(tbcErr));
+  Serial.print("jwcErr"); Serial.print((int)jwcErr); Serial.print(":"); Serial.println(toString(jwcErr));
 }
-
-
-
 
 #endif
