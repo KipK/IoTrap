@@ -15,7 +15,6 @@ void saveConfig() {
   if (shouldSaveConfig) {
         Serial <<  F("Saving configuration in '/config.json'") << endl;
         yield();
-        DynamicJsonBuffer jsonBuffer;
         JsonObject& json = jsonBuffer.createObject();
 //        json["conf_mqtt_server"]    = conf_mqtt_server;
 //        json["conf_mqtt_port"]      = conf_mqtt_port;
@@ -24,7 +23,6 @@ void saveConfig() {
         #ifdef TELEGRAM
         json["conf_bottoken"]       = conf_bottoken;
         #endif
-        SPIFFS.begin();
         File configFile = SPIFFS.open("/config.json", "w");
         
         if (!configFile) {
@@ -37,7 +35,6 @@ void saveConfig() {
         Serial << endl;
         json.printTo(configFile);
         configFile.close();
-        SPIFFS.end();
         hasConf = true; 
         
     } 
@@ -53,18 +50,7 @@ void saveConfig() {
 }
 
 void deleteConfig() {
-    if (SPIFFS.begin()) {
-        SPIFFS.remove("/config.json");
-        SPIFFS.end();
-
-        
-    }
-    else {
-      
-        Serial <<  F("SPIFFS is probably corrupted, format") << endl;
-        yield();
-        SPIFFS.format();
-    }
+    SPIFFS.remove("/config.json");
     WiFiManager wifiManager;
     wifiManager.resetSettings();
 }
@@ -75,7 +61,6 @@ void loadConfig() {
     Serial <<  F("Mounting SPIFFS File System.") << endl;
     Serial <<  F("It will format if it doesn't exist, hold-on....") << endl;
     yield();     
-    if (SPIFFS.begin()) {
         Serial <<  F("Mounted SPIFFS file system") << endl;
         yield();
           if (SPIFFS.exists("/config.json")) {
@@ -88,7 +73,6 @@ void loadConfig() {
                 std::unique_ptr<char[]> buf(new char[size]); // Allocate a buffer to store contents of the file.
                 configFile.readBytes(buf.get(), size);
                 
-                DynamicJsonBuffer jsonBuffer;
                 JsonObject& json = jsonBuffer.parseObject(buf.get());
                 
                 Serial.print(F("config.json => "));
@@ -139,14 +123,7 @@ void loadConfig() {
               hasConf = false;
             
           }
-      } else {
-          Serial <<  F("Failed to mount SPIFFS file System, format,please wait ...") << endl;
-          yield();
-          SPIFFS.format();
-          yield();
-          hasConf = false;
-    }
-    SPIFFS.end();
+
 }
 
 /// END CONFIG \\\
@@ -314,6 +291,10 @@ void onButtonReleased(Button& btn, uint16_t duration){
       startPortal();
     
   }
+}
+
+void handleButtonInterrupt() {
+  Serial.println("button interrupt");
 }
 
 #endif

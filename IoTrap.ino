@@ -35,6 +35,9 @@
 #define TGRM_TKN_LTH 46  // Telegram token length
 #define TGRM_CHAN        // Telegram channel to post
 
+//extern "C" {
+//#include "user_interface.h"
+
 #include "streamprint.h"                                    // Stream to Serial: Serial << "blahblah" << endl;
 #include <FS.h>
 
@@ -55,20 +58,20 @@
 
 #ifdef TELEGRAM
 #include <WiFiClientSecure.h>
-#include <TelegramBotClient.h>
+#include <UniversalTelegramBot.h>
 #endif
 
 
-
+DynamicJsonBuffer jsonBuffer;
 PushButton button = PushButton(BUTTONPIN,PRESSED_WHEN_LOW);
 Servo servo; 
 Ticker flasher;
 
+
 #ifdef TELEGRAM
-WiFiClientSecure sslPollClient;
-TelegramBotClient *bot;
-// Instantiate a keybord with 3 rows
-TBCKeyBoard board(3);
+WiFiClientSecure client;
+UniversalTelegramBot *bot;
+
 #endif
 
 bool traped           = false;
@@ -83,6 +86,9 @@ char  conf_hostname[MAX_HOST]                     = "IoTrap";
 char conf_bottoken[TGRM_TKN_LTH] = "";
 long bot_lasttime = 0;   //last time messages' scan has been done
 bool tgrm_ok = false;
+int bulk_messages_mtbs = 1500; // mean time between send messages, 1.5 seconds
+int messages_limit_per_second = 25; // Telegram API have limit for bulk messages ~30 messages per second
+String subscribed_users_filename = "subscribed_users.json";
 #endif
 
 
@@ -104,13 +110,25 @@ void setup() {
   button.onHoldRepeat(1000, 500, onButtonHeld);
   button.onRelease(onButtonReleased);      
   #endif
+  
+  if (SPIFFS.begin()) {
+        Serial <<  F("Mounted SPIFFS file system") << endl;
+        yield();
+  } else {
+          Serial <<  F("Failed to mount SPIFFS file System, format,please wait ...") << endl;
+          yield();
+          SPIFFS.format();
+          yield();
+          hasConf = false;
+ 
+  }
 
   loadConfig(); //load configuration data 
   
   Serial << "Connecting Wifi..." << endl;
   wifi_station_set_hostname(conf_hostname); //Set hostname
   startWifi(); 
-  initTrap(); // Open the door at boot
+  
 
   // Init IR sensor
   // ToDO...
@@ -119,25 +137,14 @@ void setup() {
   #ifdef TELEGRAM
 
   // Instantiate the client with secure token and client
-  bot = new TelegramBotClient( conf_bottoken, sslPollClient);
-      
-
-
-  // Adding the 3 rows to the keyboard
-  String row1[] = {"A1", "A2"};
-  String row2[] = {"B1", "B2" , "B3", "B4"};
-  String row3[] = {"C1", "C2" , "C3"};
-
-  // push() always returns the keyboard, so pushes can be chained 
-  board
-    .push(2, row1)
-    .push(4, row2)
-    .push(3, row3);
+  bot = new UniversalTelegramBot( conf_bottoken, client);
+  #endif
   
-  // Sets the functions implemented above as so called callback functions,
-  // thus the client will call this function on receiving data or on error.
-  bot->begin( onReceive, onError);    
-#endif
+  attachInterrupt(digitalPinToInterrupt(BUTTONPIN), handleButtonInterrupt, CHANGE); 
+  initTrap(); // Open the door at boot
+     
+    
+
 }
 
 void loop() {
@@ -173,7 +180,15 @@ void loop() {
     //TELEGRAM
     #ifdef TELEGRAM
       if (tgrm_ok) {
-        bot->loop();
+        if (millis() > bot_lasttime + TGRM_LTIME)  {
+          int numNewMessages = bot->getUpdates(bot->last_message_received + 1);
+          while(numNewMessages) {
+            Serial.println("got response");
+            handleNewMessages(numNewMessages);
+            numNewMessages = bot->getUpdates(bot->last_message_received + 1);
+          }
+          bot_lasttime = millis();
+        }
       }
     #endif
     
@@ -191,9 +206,9 @@ void closeTrap() {
   servo.detach();
   traped = true;
 
-//  #ifdef TELEGRAM
-//  bot->sendMessage(chat_id, "Mouse catched!", "");
-//  #endif
+  #ifdef TELEGRAM
+  sendMessageToUsers("Mouse traped!");
+  #endif
 }
 
 
@@ -205,7 +220,7 @@ void initTrap() {
   servo.write(SERVOOPEN);
   delay(100);
   servo.detach();
-//  #ifdef TELEGRAM
-//  bot->sendMessage(chat_id, "Trap ready, waiting for new target...", "");
-//  #endif
+  #ifdef TELEGRAM
+  sendMessageToUsers("Opening trap, waiting for target");
+  #endif
 }
