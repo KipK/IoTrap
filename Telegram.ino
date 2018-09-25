@@ -143,7 +143,7 @@ void onReceive (TelegramProcessError tbcErr, JwcProcessError jwcErr, Message* ms
         
           if (addSubscribedUser(chat_id, from_name)) {
             sendmsg =  "Welcome " + from_name + " ,\n";
-            sendmsg += "I'm IoTrap bot, an overkill but cool non lethal mouse trap.\n";
+            sendmsg += "I'm IoTrap, an overkill but damn cool non lethal mouse trap.\n";
             sendmsg += "You are now SUBSCRIBED to notifications\n";
             sendmsg += helpmsg;
 
@@ -159,7 +159,7 @@ void onReceive (TelegramProcessError tbcErr, JwcProcessError jwcErr, Message* ms
         }
       }
       else if (text == "/help") {
-        sendmsg =  "==  IoTRAP - WiFi Mouse Trap  ==\n\n"; 
+        sendmsg =  "☠🐭☠ -- " + String(conf_hostname) + " " + VERSION + " -- ☠🐭☠\n"; 
         sendmsg += helpmsg;
       }
       else if (text == "/status") {
@@ -190,8 +190,12 @@ void onReceive (TelegramProcessError tbcErr, JwcProcessError jwcErr, Message* ms
         closeTrap();
         sendmsg = "Closing trap";
       }
+      else if(text.startsWith("/")) {
+        sendmsg  = "Wrong command.\n";
+        sendmsg += "You should try /help to see available ones";
+      }
 
-      if (sendmsg) {
+      if (sendmsg!="") {
         bot->postMessage(msg->ChatId, sendmsg);
         sendmsg = "";
       }

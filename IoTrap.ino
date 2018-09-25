@@ -16,7 +16,7 @@
 
 #define STATUS_LED                   2     // Built-in blue LED on pin 2
 #define LED_INVERTED                 1     // 1 = High: Off, Low: On, 0 = opposite
-  
+ 
 #define SERVOOPEN  90 // servo value when door is open
 #define SERVOCLOSE 60 //
 
@@ -163,9 +163,14 @@ void loop() {
     startPortal();
   }
 
-  if ((millis() - main_ltime) >= 500) { 
-    // To Do: check IR sensor status
-    bot->loop();
+  if ((millis() - main_ltime) >= 20) { 
+    // Check if we have a mouse around
+    if(spotMouse()) {
+      // Mouse spotted, close trap
+       closeTrap();
+       sendMessageToUsers("We've traped a mouse here sir!");
+    }
+   
     main_ltime = millis();
   }
   else if ((millis() - main_ltime) < 0) main_ltime = millis(); // in case it overflown
@@ -191,6 +196,12 @@ void loop() {
 }
 
 
+bool spotMouse() {
+  if (!dbDigitalRead(IRPIN)) {
+    return true; // mouse spotted
+  }
+  else return false;
+}
 
 void closeTrap() {
   Serial << "Closing trap" << endl;

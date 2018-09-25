@@ -291,10 +291,27 @@ void onButtonReleased(Button& btn, uint16_t duration){
 
 #endif
 
-/// END BUTTON \\\
+// END BUTTON \\
 
-void flash() {
-  
-    digitalWrite(STATUS_LED, !digitalRead(STATUS_LED));
-  
+// IR & LED    \\
+
+void flash() { 
+digitalWrite(STATUS_LED, !digitalRead(STATUS_LED));
 }
+
+
+// Debounce digitalRead by sampling x times before consider a rise or fall
+byte dbDigitalRead(byte pin) {
+  byte sensitivity = 16;                            // number of samples 32 max. 16 seems good.
+  unsigned long mask = 0xffff0000;
+  mask = ~((1UL << sensitivity) - 1);
+  unsigned long pinStatus;
+  
+  do {
+    pinStatus = 0xffffffff;
+    for (byte i = 1; i <= sensitivity; i++) pinStatus = (pinStatus << 1) | digitalRead(pin);
+  } while ((pinStatus != mask) && (pinStatus != 0xffffffff));
+  return byte(pinStatus & 0x00000001);
+} 
+
+  
