@@ -21,7 +21,8 @@ Additional libraries needed:
 	
 First boot can be longer than normal as it will format spiffs partition if needed.
 
-It will default crate a hotspot wifi with a captive portal.
+It will default create a hotspot wifi with a captive portal.
+Default password is "password"
 There you can configure your wifi settings and add your Telegram bot api key.
 
 Short press on button ( < 2s ) will close the door or reinitialise the trap depending of the current status.
