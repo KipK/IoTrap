@@ -275,7 +275,7 @@ void onButtonHeld(Button& btn, uint16_t duration, uint16_t repeatCount){
 // duration reports back the total time that the button was held down
 void onButtonReleased(Button& btn, uint16_t duration){
   if (duration <= BUT_DOOR) {
-      if (traped) initTrap();
+      if (trapped) initTrap();
        else closeTrap();
   }
   

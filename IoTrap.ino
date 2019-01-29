@@ -30,9 +30,9 @@
 #define MAX_HOST    64
 
 #define TELEGRAM                                            // enable Telegram bot
-#define TGRM_LTIME 2000  // scan message each 2 sec.
+#define TGRM_LTIME 5000  // scan for new message looptime
 #define TGRM_TKN_LTH 46  // Telegram token length
-#define TGRM_PASS "seychelles"
+#define TGRM_PASS ""
 
 //extern "C" {
 //#include "user_interface.h"
@@ -52,12 +52,11 @@
 #include <PushButton.h>
 #include <Button.h>
 #include <ButtonEventCallback.h>
-#include <Bounce2.h>    // https://github.com/thomasfredericks/Bounce-Arduino-Wiring
+//#include <Bounce2.h>    // https://github.com/thomasfredericks/Bounce-Arduino-Wiring
 
 
 #ifdef TELEGRAM
 #include <WiFiClientSecure.h>
-//#include <UniversalTelegramBot.h>
 #include <TelegramBotClient.h>
 #endif
 
@@ -74,7 +73,7 @@ TelegramBotClient *bot;
 
 #endif
 
-bool traped           = false;
+bool trapped           = false;
 bool shouldSaveConfig = false;
 bool  hasConf         = false;
 //char  conf_mqtt_server[MAX_SERVER]                = "my.mqttserver.io";  //default mosquito IP/host
@@ -154,6 +153,8 @@ void setup() {
 void loop() {
   static long wifi_ltime = millis(); // Wifii looptime
   static long main_ltime = millis();  // Main looptime
+  static long trap_ltime = 0; // for how long mouse has been traped 
+  
   #ifdef ENABLE_BUTTON
   // Check the state of the button
   button.update();
@@ -163,12 +164,24 @@ void loop() {
     startPortal();
   }
 
-  if ((millis() - main_ltime) >= 20) { 
+  if ((millis() - main_ltime) >= 100) { 
     // Check if we have a mouse around
-    if(spotMouse()) {
-      // Mouse spotted, close trap
-       closeTrap();
-       sendMessageToUsers("We've traped a mouse here sir!");
+    if (!trapped){
+      if(spotMouse()) {
+      // Mouse spotted, close trap     
+         closeTrap();
+         sendMessageToUsers("We've trapped a mouse here!");
+         trap_ltime = 1;
+      }
+    }
+    else {
+      if (trap_ltime) {
+          trap_ltime++;
+          if (trap_ltime >= 20) {
+            trap_ltime = 0;
+            openTrap(); // repositionning servo to open position after 2s to prevent mouse eating the hatch.
+          }
+      }
     }
    
     main_ltime = millis();
@@ -210,16 +223,19 @@ void closeTrap() {
   servo.write(SERVOCLOSE);
   delay(100);
   servo.detach();
-  traped = true;
+  trapped = true;
 }
 
-
-void initTrap() {
-  Serial << "Opening Trap" << endl;
-  traped = false;
+void openTrap() {
   servo.attach(SERVOPIN);
   delay(10);
   servo.write(SERVOOPEN);
   delay(100);
   servo.detach();
+}
+
+void initTrap() {
+  Serial << "Opening Trap" << endl;
+  trapped = false;
+  openTrap();
 }

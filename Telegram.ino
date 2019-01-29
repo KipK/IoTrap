@@ -1,7 +1,6 @@
 #ifdef TELEGRAM
-
-String helpmsg = "Commands:\n"\
-                 "-  /start              : subscribe to notifications\n"
+String helpmsg = "Commands:\n"
+                 "-  /start              : subscribe to notifications\n "
                  "-  /stop               : unsubscribe to notifications\n"
                  "-  /status             : show trap status\n"
                  "-  /device             : show device infos\n"
@@ -163,7 +162,7 @@ void onReceive (TelegramProcessError tbcErr, JwcProcessError jwcErr, Message* ms
         sendmsg += helpmsg;
       }
       else if (text == "/status") {
-        if (traped) sendmsg = "Dude, we have a 🐭 here! Trap is locked.";
+        if (trapped) sendmsg = "Dude, we have a 🐭 here! Trap is locked.";
         else        sendmsg = "Trap is ready and waiting for 🐭";
        
       }
