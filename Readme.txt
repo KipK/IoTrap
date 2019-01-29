@@ -1,7 +1,11 @@
-IoTrap - an ESP8266 mouse trap with Telegram bot.
+IoTrap - a 3D printed ESP8266 based mouse trap with Telegram bot.
 
-Needed: a servo motor, 
-1 esp8266, 
+3D printed files: https://www.thingiverse.com/thing:3389396
+
+
+Needed: 
+1 9g servo motor 
+1 esp8266
 1 button (optionnal)
 1 IR proximity sensor like this https://www.banggood.com/TCRT5000-Infrared-Reflective-Switch-IR-Barrier-Line-Track-Sensor-Module-p-1038443.html
 
